@@ -1,0 +1,19 @@
+# Minimum versions with no known flaws as of this review (2026-10).
+# The guide pinned FastAPI 0.110.0, which brings Starlette < 0.40 (CVE-2024-47874,
+# denial of service in multipart forms). After installing, freeze
+# with:  pip freeze > requirements.lock  and audit with:  pip-audit
+fastapi>=0.115.6
+starlette>=0.40.0
+uvicorn[standard]>=0.32.0
+pydantic>=2.9
+pydantic-settings>=2.6
+SQLAlchemy>=2.0.36
+psycopg[binary]>=3.2.3
+PyJWT>=2.10.1
+bcrypt>=4.2.0
+# Chatbot: call to Groq (optional) without an extra SDK
+httpx>=0.28
+
+# Tests
+pytest>=8.3
+pip-audit>=2.7

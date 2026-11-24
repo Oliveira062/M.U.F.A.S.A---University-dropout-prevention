@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MUFASA – storage notice</title>
+<style>
+  :root {
+    --background: #ffffff; --text: #1a1a1a; --border: #5c5c5c;
+    --primary: #0b4f8a; --primary-text: #ffffff; --focus: #b35900;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --background: #1c1c1c; --text: #f2f2f2; --border: #a6a6a6;
+            --primary: #8cc4ff; --primary-text: #0d0d0d; --focus: #ffb366; }
+  }
+  body { margin: 0; font: 1rem/1.5 system-ui, sans-serif; background: var(--background); color: var(--text); }
+  .notice {
+    position: fixed; inset: auto 0 0 0; padding: 1rem; background: var(--background); color: var(--text);
+    border-top: 2px solid var(--border); box-shadow: 0 -2px 8px rgb(0 0 0 / .25);
+  }
+  .notice[hidden] { display: none; }
+  .notice h2 { font-size: 1.125rem; margin: 0 0 .5rem; }
+  .notice p { margin: 0 0 .75rem; max-width: 70ch; }
+  .actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+  button, a.button {
+    font: inherit; min-height: 44px; min-width: 44px; padding: .5rem 1rem; border-radius: 4px;
+    border: 2px solid var(--primary); cursor: pointer; text-decoration: none; display: inline-flex; align-items: center;
+  }
+  .main { background: var(--primary); color: var(--primary-text); }
+  .secondary { background: transparent; color: var(--text); border-color: var(--border); }
+  a { color: var(--primary); }
+  :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+  fieldset { border: 1px solid var(--border); margin: 0 0 .75rem; padding: .5rem 1rem; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+
+<section class="notice" id="storage-notice" role="region" aria-labelledby="notice-title" hidden>
+  <h2 id="notice-title">How MUFASA uses your browser</h2>
+  <p id="notice-text">
+    We keep only what is necessary for the system to work: your session, while the tab is open,
+    and the information that you have already read this notice. We do not use advertising, tracking or third-party tools.
+  </p>
+  <div id="options"></div>
+  <div class="actions" id="actions"></div>
+  <p><a href="COOKIE_POLICY.md">Read the cookie policy</a> · <a href="PRIVACY_POLICY.md">Privacy policy</a></p>
+</section>
+
+<script>
+(function () {
+  "use strict";
+
+  var KEY = "mufasa_storage_notice";
+  var POLICY_VERSION = "1.0";
+  var VALIDITY_MS = 365 * 24 * 60 * 60 * 1000;
+
+  var OPTIONAL_CATEGORIES = [];
+
+  function read() {
+    try {
+      var raw = window.localStorage.getItem(KEY);
+      if (!raw) return null;
+      var data = JSON.parse(raw);
+      if (data.version !== POLICY_VERSION || Date.now() - data.at > VALIDITY_MS) return null;
+      return data;
+    } catch (e) { return null; }
+  }
+
+  function save(choices) {
+    try {
+      window.localStorage.setItem(KEY, JSON.stringify({ version: POLICY_VERSION, at: Date.now(), choices: choices }));
+    } catch (e) { }
+  }
+
+  function button(text, cssClass, onClick) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = cssClass; b.textContent = text;
+    b.addEventListener("click", onClick);
+    return b;
+  }
+
+  var notice = document.getElementById("storage-notice");
+  var actions = document.getElementById("actions");
+  var options = document.getElementById("options");
+  var previousFocus = null;
+
+  function close(choices) {
+    save(choices);
+    notice.hidden = true;
+    if (previousFocus && previousFocus.focus) previousFocus.focus();
+  }
+
+  function build() {
+    actions.textContent = ""; options.textContent = "";
+
+    if (OPTIONAL_CATEGORIES.length === 0) {
+      actions.appendChild(button("Got it", "main", function () { close({}); }));
+      return;
+    }
+
+    var group = document.createElement("fieldset");
+    var legend = document.createElement("legend");
+    legend.textContent = "Optional resources";
+    group.appendChild(legend);
+    OPTIONAL_CATEGORIES.forEach(function (c) {
+      var id = "option-" + c.id;
+      var label = document.createElement("label");
+      var box = document.createElement("input");
+      box.type = "checkbox"; box.id = id; box.name = c.id; box.checked = false;
+      label.htmlFor = id;
+      label.appendChild(box);
+      label.appendChild(document.createTextNode(" " + c.name + " – " + c.description + " (" + c.provider + ")"));
+      group.appendChild(label);
+      group.appendChild(document.createElement("br"));
+    });
+    options.appendChild(group);
+
+    function all(value) {
+      var r = {}; OPTIONAL_CATEGORIES.forEach(function (c) { r[c.id] = value; }); return r;
+    }
+    function checked() {
+      var r = {}; OPTIONAL_CATEGORIES.forEach(function (c) { r[c.id] = document.getElementById("option-" + c.id).checked; }); return r;
+    }
+    actions.appendChild(button("Refuse optional ones", "main", function () { close(all(false)); }));
+    actions.appendChild(button("Accept all", "main", function () { close(all(true)); }));
+    actions.appendChild(button("Save my choice", "secondary", function () { close(checked()); }));
+  }
+
+  function open() {
+    previousFocus = document.activeElement;
+    build();
+    notice.hidden = false;
+    var first = actions.querySelector("button");
+    if (first) first.focus();
+  }
+
+  notice.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && OPTIONAL_CATEGORIES.length === 0) close({});
+  });
+
+  window.mufasaPrivacyPreferences = open;
+
+  if (!read()) open();
+})();
+</script>
+</body>
+</html>

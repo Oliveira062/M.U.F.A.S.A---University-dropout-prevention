@@ -1,0 +1,29 @@
+# Virtual environment
+venv/
+.venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Test cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Secrets - NEVER version
+.env
+*.env
+
+# Editors
+.vscode/
+.idea/
+
+# System
+.DS_Store
+Thumbs.db
+
+# Real student data - LGPD
+data/*.csv
+data/*.xlsx

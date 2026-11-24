@@ -1,0 +1,58 @@
+from decimal import Decimal
+from functools import lru_cache
+
+from pydantic import Field, SecretStr, field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Configuration(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+
+    database_url: SecretStr
+
+    jwt_secret: SecretStr
+    jwt_algorithm: str = "HS256"
+    jwt_expires_minutes: int = Field(default=30, ge=5, le=120)
+    jwt_issuer: str = "mufasa-api"
+    jwt_audience: str = "mufasa-interface"
+
+    environment: str = "development"
+    force_https: bool = False
+    allowed_hosts: list[str] = ["localhost", "127.0.0.1", "testserver"]
+    cors_origins: list[str] = []
+    docs_enabled: bool = True
+
+    login_max_failures: int = 5
+    login_block_minutes: int = 15
+
+    request_limit_minute: int = 120
+    login_limit_minute: int = 10
+
+    minimum_wage: Decimal | None = None
+
+    support_key: SecretStr | None = None
+
+    service_name: str = "api"
+
+    @field_validator("jwt_secret")
+    @classmethod
+    def _strong_key(cls, v: SecretStr) -> SecretStr:
+        if len(v.get_secret_value().encode()) < 32:
+            raise ValueError("JWT_SECRET needs at least 32 random bytes")
+        return v
+
+    @field_validator("jwt_algorithm")
+    @classmethod
+    def _allowed_algorithm(cls, v: str) -> str:
+        if v not in ("HS256", "HS384", "HS512"):
+            raise ValueError("JWT_ALGORITHM must be HS256, HS384 or HS512")
+        return v
+
+    @property
+    def in_production(self) -> bool:
+        return self.environment == "production"
+
+
+@lru_cache
+def get_configuration() -> Configuration:
+    return Configuration()
